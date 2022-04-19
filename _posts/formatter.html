@@ -1,0 +1,69 @@
+---
+layout: page
+title: String Formatter
+subtitle: Simple String Formatter
+tags: [formatter]
+comments: false
+---
+
+<div class="container">
+	<div class="form-group">
+		<label for="input-text">Example textarea</label>
+		<textarea class="form-control" id="input-text" rows="4"></textarea>
+	</div>
+	<div class="row">
+		<div class="col d-flex justify-content-center">
+			<div class="btn-group" role="group" aria-label="Text Convert">
+				<button type="button" class="btn btn-primary" onclick="uppercase()">Uppercase</button>
+				<button type="button" class="btn btn-primary" onclick="lowercase()">Lowercase</button>
+			</div>
+		</div>
+	</div>
+	<div class="row mt-2">
+		<div class="col d-flex justify-content-center">
+			<div class="btn-group" role="group" aria-label="Case Convert">
+				<button type="button" class="btn btn-info" onclick="camelToSnake()">camelCase to snake_case</button>
+				<button type="button" class="btn btn-info" onclick="snakeToCamel()">snake_case to camelCase</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script type="text/javascript">
+	function getInputText() {
+		var tx = document.getElementById("input-text").value;
+		return tx;
+	}
+
+	function setInputText(text) {
+		document.getElementById("input-text").value = text;
+	}
+	function uppercase() {
+		var tx = getInputText();
+		console.log(tx);
+		setInputText(tx.toUpperCase());
+	}
+	function lowercase() {
+		var tx = getInputText();
+		console.log(tx);
+		setInputText(tx.toLowerCase());
+	}
+
+	function snakeToCamel(){
+		var str = getInputText()
+		var tx = str.toLowerCase().replace(/([-_][a-z])/g, group =>
+			group
+			.toUpperCase()
+			.replace('-', '')
+			.replace('_', '')
+			).replace('-', '')
+		.replace('_', '');
+		setInputText(tx);
+	}
+	function camelToSnake() {
+		var str = getInputText();
+		var tx = str.split(/(?=[A-Z])/).join('_').toLowerCase();
+		setInputText(tx);
+	}
+	
+</script>
