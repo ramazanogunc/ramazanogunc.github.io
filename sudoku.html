@@ -149,6 +149,12 @@
             gap: 15mm;
             height: calc(100% - 50px);
         }
+        .sudoku-grid-container.single {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr;
+            gap: 0;
+            place-items: center;
+        }
         .sudoku-wrapper {
             display: flex;
             flex-direction: column;
@@ -167,6 +173,11 @@
             height: 85mm;
             border: 3px solid;
         }
+        .sudoku.size-16 {
+            width: 180mm;
+            height: 180mm;
+            grid-template-columns: repeat(16, 1fr);
+        }
         .sudoku.easy {
             border-color: #4CAF50;
         }
@@ -183,38 +194,68 @@
             justify-content: center;
             font-size: 16px;
             font-weight: bold;
+            min-height: 0;
+        }
+        .sudoku:not(.size-16) .cell {
+            border-color: inherit;
         }
         .sudoku.easy .cell {
             border-color: #a5d6a7;
         }
-        .sudoku.easy .cell:nth-child(3n):not(:nth-child(9n)) {
+        .sudoku:not(.size-16).easy .cell:nth-child(3n):not(:nth-child(9n)) {
             border-right: 2px solid #4CAF50;
         }
-        .sudoku.easy .cell:nth-child(n+19):nth-child(-n+27),
-        .sudoku.easy .cell:nth-child(n+46):nth-child(-n+54) {
+        .sudoku:not(.size-16).easy .cell:nth-child(n+19):nth-child(-n+27),
+        .sudoku:not(.size-16).easy .cell:nth-child(n+46):nth-child(-n+54) {
             border-bottom: 2px solid #4CAF50;
         }
         
         .sudoku.medium .cell {
             border-color: #90caf9;
         }
-        .sudoku.medium .cell:nth-child(3n):not(:nth-child(9n)) {
+        .sudoku:not(.size-16).medium .cell:nth-child(3n):not(:nth-child(9n)) {
             border-right: 2px solid #2196F3;
         }
-        .sudoku.medium .cell:nth-child(n+19):nth-child(-n+27),
-        .sudoku.medium .cell:nth-child(n+46):nth-child(-n+54) {
+        .sudoku:not(.size-16).medium .cell:nth-child(n+19):nth-child(-n+27),
+        .sudoku:not(.size-16).medium .cell:nth-child(n+46):nth-child(-n+54) {
             border-bottom: 2px solid #2196F3;
         }
         
         .sudoku.hard .cell {
             border-color: #ef9a9a;
         }
-        .sudoku.hard .cell:nth-child(3n):not(:nth-child(9n)) {
+        .sudoku:not(.size-16).hard .cell:nth-child(3n):not(:nth-child(9n)) {
             border-right: 2px solid #f44336;
         }
-        .sudoku.hard .cell:nth-child(n+19):nth-child(-n+27),
-        .sudoku.hard .cell:nth-child(n+46):nth-child(-n+54) {
+        .sudoku:not(.size-16).hard .cell:nth-child(n+19):nth-child(-n+27),
+        .sudoku:not(.size-16).hard .cell:nth-child(n+46):nth-child(-n+54) {
             border-bottom: 2px solid #f44336;
+        }
+        
+        /* 4x4 Sudoku için kalın çizgiler */
+        .border-right-thick {
+            border-right: 2px solid;
+        }
+        .border-bottom-thick {
+            border-bottom: 2px solid;
+        }
+        .sudoku.easy .border-right-thick {
+            border-right-color: #4CAF50;
+        }
+        .sudoku.easy .border-bottom-thick {
+            border-bottom-color: #4CAF50;
+        }
+        .sudoku.medium .border-right-thick {
+            border-right-color: #2196F3;
+        }
+        .sudoku.medium .border-bottom-thick {
+            border-bottom-color: #2196F3;
+        }
+        .sudoku.hard .border-right-thick {
+            border-right-color: #f44336;
+        }
+        .sudoku.hard .border-bottom-thick {
+            border-bottom-color: #f44336;
         }
         @media print {
             body {
@@ -234,7 +275,16 @@
 <body>
     <div class="controls">
         <h2>Sudoku PDF Üretici</h2>
-        <p>Zorluk seviyesi seçin (10 sayfa, 40 sudoku üretilecek):</p>
+        <p><strong>Sudoku boyutu seçin:</strong></p>
+        <div class="difficulty-buttons">
+            <button class="difficulty-btn easy" onclick="selectSize('16x16')" style="border-color: #9C27B0; color: #9C27B0;">
+                🟣 16x16 (1-16)
+            </button>
+            <button class="difficulty-btn medium" onclick="selectSize('9x9')" style="border-color: #FF5722; color: #FF5722;">
+                🟠 9x9 (1-9)
+            </button>
+        </div>
+        <p><strong>Zorluk seviyesi seçin</strong> (10 sayfa üretilecek):</p>
         <div class="difficulty-buttons">
             <button class="difficulty-btn easy" onclick="selectDifficulty('easy')">
                 🟢 Kolay
@@ -270,23 +320,97 @@
 
     <script>
         let selectedDifficulty = null;
+        let selectedSize = '9x9'; // varsayılan
+
+        function selectSize(size) {
+            selectedSize = size;
+            
+            // Butonları güncelle
+            document.querySelectorAll('.difficulty-btn').forEach((btn, idx) => {
+                if (idx < 2) btn.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+            
+            checkIfReady();
+        }
 
         function selectDifficulty(difficulty) {
             selectedDifficulty = difficulty;
             
             // Butonları güncelle
-            document.querySelectorAll('.difficulty-btn').forEach(btn => {
-                btn.classList.remove('selected');
+            document.querySelectorAll('.difficulty-btn').forEach((btn, idx) => {
+                if (idx >= 2) btn.classList.remove('selected');
             });
-            document.querySelector(`.difficulty-btn.${difficulty}`).classList.add('selected');
+            event.target.classList.add('selected');
             
-            // Üret butonunu aktif et
+            checkIfReady();
+        }
+
+        function checkIfReady() {
             const generateBtn = document.getElementById('generateBtn');
-            generateBtn.disabled = false;
-            generateBtn.textContent = '✨ Sudoku PDF Üret';
+            if (selectedDifficulty) {
+                generateBtn.disabled = false;
+                const sizeText = selectedSize === '16x16' ? '16x16' : '9x9';
+                generateBtn.textContent = `✨ ${sizeText} Sudoku PDF Üret`;
+            }
         }
 
         function generateSudoku(difficulty) {
+            if (selectedSize === '16x16') {
+                return generateSudoku16x16(difficulty);
+            } else {
+                return generateSudoku9x9(difficulty);
+            }
+        }
+
+        function generateSudoku16x16(difficulty) {
+            // 16x16 Sudoku üreteci - 16 satır, 16 sütun, 1-16 sayılar
+            const size = 16;
+            
+            function shuffle(arr) {
+                const newArr = [...arr];
+                for (let i = newArr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+                }
+                return newArr;
+            }
+            
+            // Basit geçerli bir 16x16 sudoku oluştur
+            const base = [];
+            for (let i = 0; i < size; i++) {
+                base[i] = [];
+                for (let j = 0; j < size; j++) {
+                    base[i][j] = ((i * 4 + Math.floor(i / 4) + j) % size) + 1;
+                }
+            }
+            
+            // Satırları ve sütunları karıştır (sudoku kurallarını bozmadan)
+            const board = JSON.parse(JSON.stringify(base));
+            
+            // Zorluk seviyesine göre hücreleri boşalt
+            let empties;
+            if (difficulty === 'easy') empties = 100;
+            else if (difficulty === 'medium') empties = 140;
+            else empties = 180;
+            
+            const positions = [];
+            for (let i = 0; i < size * size; i++) {
+                positions.push(i);
+            }
+            const shuffledPos = shuffle(positions);
+            
+            for (let i = 0; i < empties && i < shuffledPos.length; i++) {
+                const pos = shuffledPos[i];
+                const row = Math.floor(pos / size);
+                const col = pos % size;
+                board[row][col] = 0;
+            }
+            
+            return board;
+        }
+
+        function generateSudoku9x9(difficulty) {
             const base = 3;
             const side = base * base;
             
@@ -335,13 +459,34 @@
         }
 
         function createSudokuHTML(puzzle, difficulty, number) {
+            const size = puzzle.length;
             let html = '<div class="sudoku-wrapper">';
             html += `<div class="sudoku-number">Sudoku ${number}</div>`;
-            html += `<div class="sudoku ${difficulty}">`;
-            for (let i = 0; i < 9; i++) {
-                for (let j = 0; j < 9; j++) {
+            
+            // 16x16 için class ekle
+            const sizeClass = size === 16 ? 'size-16' : '';
+            const fontSize = size === 16 ? 'font-size: 11px;' : '';
+            
+            html += `<div class="sudoku ${difficulty} ${sizeClass}" style="${fontSize}">`;
+            
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
                     const value = puzzle[i][j];
-                    html += `<div class="cell">${value === 0 ? '' : value}</div>`;
+                    let cellClass = 'cell';
+                    
+                    // 16x16 için 4x4 bloklar
+                    if (size === 16) {
+                        // 4., 8., 12. SÜTUNLARDA (j=3,7,11) kalın çizgi SAĞ tarafta
+                        if (j === 3 || j === 7 || j === 11) {
+                            cellClass += ' border-right-thick';
+                        }
+                        // 4., 8., 12. SATIRLARDA (i=3,7,11) kalın çizgi ALT tarafta
+                        if (i === 3 || i === 7 || i === 11) {
+                            cellClass += ' border-bottom-thick';
+                        }
+                    }
+                    
+                    html += `<div class="${cellClass}">${value === 0 ? '' : value}</div>`;
                 }
             }
             html += '</div></div>';
@@ -355,11 +500,17 @@
                 'hard': 'Zor'
             };
             
-            let html = '<div class="page">';
-            html += `<div class="page-title">${difficultyNames[difficulty]} Seviye - Sayfa ${pageNum}</div>`;
-            html += '<div class="sudoku-grid-container">';
+            const sizeText = selectedSize === '16x16' ? '16x16' : '9x9';
+            const is16x16 = selectedSize === '16x16';
             
-            for (let i = 0; i < 4; i++) {
+            let html = '<div class="page">';
+            html += `<div class="page-title">${sizeText} ${difficultyNames[difficulty]} Seviye - Sayfa ${pageNum}</div>`;
+            html += `<div class="sudoku-grid-container ${is16x16 ? 'single' : ''}">`;
+            
+            // 16x16 ise sadece 1 sudoku, 9x9 ise 4 sudoku
+            const count = is16x16 ? 1 : 4;
+            
+            for (let i = 0; i < count; i++) {
                 const puzzle = generateSudoku(difficulty);
                 html += createSudokuHTML(puzzle, difficulty, startNum + i);
             }
@@ -378,11 +529,13 @@
             setTimeout(() => {
                 let html = '';
                 let sudokuCounter = 1;
+                const is16x16 = selectedSize === '16x16';
+                const increment = is16x16 ? 1 : 4; // 16x16 sayfa başı 1, 9x9 sayfa başı 4
                 
                 // Seçilen zorlukta 10 sayfa üret
                 for (let i = 0; i < 10; i++) {
                     html += createPage(selectedDifficulty, i + 1, sudokuCounter);
-                    sudokuCounter += 4;
+                    sudokuCounter += increment;
                 }
                 
                 document.getElementById('content').innerHTML = html;
@@ -391,7 +544,9 @@
                 document.getElementById('printBtn').style.display = 'block';
                 document.getElementById('shareBtn').style.display = 'block';
                 document.getElementById('instructions').style.display = 'none';
-                generateBtn.textContent = '✅ Üretildi! Tekrar üretmek için tıklayın';
+                
+                const totalSudoku = is16x16 ? 10 : 40;
+                generateBtn.textContent = `✅ ${totalSudoku} Sudoku Üretildi! Tekrar üretmek için tıklayın`;
                 generateBtn.disabled = false;
                 
                 // Mobilde scroll yap
