@@ -376,17 +376,55 @@
                 return newArr;
             }
             
-            // Basit geçerli bir 16x16 sudoku oluştur
+            // Rastgele başlangıç sayı dizisi
+            const nums = shuffle([...Array(size)].map((_, i) => i + 1));
+            
+            // Pattern ile board oluştur
             const base = [];
             for (let i = 0; i < size; i++) {
                 base[i] = [];
                 for (let j = 0; j < size; j++) {
-                    base[i][j] = ((i * 4 + Math.floor(i / 4) + j) % size) + 1;
+                    const idx = (i * 4 + Math.floor(i / 4) + j) % size;
+                    base[i][j] = nums[idx];
                 }
             }
             
-            // Satırları ve sütunları karıştır (sudoku kurallarını bozmadan)
-            const board = JSON.parse(JSON.stringify(base));
+            // Satırları karıştır (4'lü gruplar halinde)
+            const rowGroups = [
+                [0, 1, 2, 3],
+                [4, 5, 6, 7],
+                [8, 9, 10, 11],
+                [12, 13, 14, 15]
+            ];
+            
+            const shuffledRowGroups = shuffle(rowGroups);
+            const board = [];
+            for (let group of shuffledRowGroups) {
+                const shuffledGroup = shuffle(group);
+                for (let rowIdx of shuffledGroup) {
+                    board.push([...base[rowIdx]]);
+                }
+            }
+            
+            // Sütunları karıştır (4'lü gruplar halinde)
+            const colGroups = [
+                [0, 1, 2, 3],
+                [4, 5, 6, 7],
+                [8, 9, 10, 11],
+                [12, 13, 14, 15]
+            ];
+            
+            const shuffledColGroups = shuffle(colGroups);
+            const finalBoard = [];
+            for (let i = 0; i < size; i++) {
+                finalBoard[i] = [];
+                for (let group of shuffledColGroups) {
+                    const shuffledGroup = shuffle(group);
+                    for (let colIdx of shuffledGroup) {
+                        finalBoard[i].push(board[i][colIdx]);
+                    }
+                }
+            }
             
             // Zorluk seviyesine göre hücreleri boşalt
             let empties;
@@ -404,10 +442,10 @@
                 const pos = shuffledPos[i];
                 const row = Math.floor(pos / size);
                 const col = pos % size;
-                board[row][col] = 0;
+                finalBoard[row][col] = 0;
             }
             
-            return board;
+            return finalBoard;
         }
 
         function generateSudoku9x9(difficulty) {
