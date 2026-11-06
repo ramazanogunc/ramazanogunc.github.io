@@ -16,6 +16,7 @@ author: Ramazan Öğünç
 navbar-links:
   Formatter: "formatter"
   Sudoku: "sudoku"
+  Sudoku2: "sudoku2"
   
 
 # --- Logo --- #

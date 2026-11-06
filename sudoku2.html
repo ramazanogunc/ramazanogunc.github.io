@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku — A4 Yazdırma</title>
+    <style>
+        :root {
+            --ink: #0f172a;
+            --ink-soft: #475569;
+            --accent: #4f46e5;
+            --line: #94a3b8;
+            --line-strong: #0f172a;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, Tahoma, sans-serif;
+            background: #1e293b;
+            color: var(--ink);
+            min-height: 100vh;
+            padding: 24px 16px 60px;
+        }
+
+        /* =========================================================
+           Ekran arayüzü (yazdırmada gizlenir)
+           ========================================================= */
+        .screen-only { }
+
+        .topbar {
+            max-width: 900px;
+            margin: 0 auto 20px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .topbar h1 {
+            font-size: clamp(24px, 4vw, 34px);
+            letter-spacing: 2px;
+        }
+
+        .topbar p {
+            margin-top: 6px;
+            color: #cbd5e1;
+            font-size: 14px;
+        }
+
+        .controls {
+            max-width: 900px;
+            margin: 0 auto 18px;
+            background: #fff;
+            border-radius: 16px;
+            padding: 18px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 14px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, .3);
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--ink-soft);
+        }
+
+        .field select,
+        .field input[type="number"] {
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--ink);
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            background: #f8fafc;
+            min-width: 140px;
+        }
+
+        .field input[type="number"] { min-width: 110px; }
+
+        .field select:focus,
+        .field input:focus {
+            outline: 2px solid var(--accent);
+            outline-offset: 1px;
+        }
+
+        .checkbox-field {
+            flex-direction: row;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .checkbox-field input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .btn {
+            font-family: inherit;
+            border: none;
+            font-size: 15px;
+            font-weight: 700;
+            padding: 12px 24px;
+            border-radius: 11px;
+            cursor: pointer;
+            transition: transform .15s, box-shadow .15s, opacity .15s;
+        }
+
+        .btn:hover:not(:disabled) { transform: translateY(-2px); }
+        .btn:disabled { opacity: .55; cursor: wait; }
+
+        #generateBtn {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 6px 16px rgba(79, 70, 229, .35);
+        }
+
+        #printBtn {
+            background: #10b981;
+            color: #fff;
+            box-shadow: 0 6px 16px rgba(16, 185, 129, .3);
+        }
+
+        .status {
+            max-width: 900px;
+            margin: 0 auto 22px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #cbd5e1;
+            min-height: 20px;
+        }
+
+        .status.error { color: #fca5a5; }
+
+        /* =========================================================
+           A4 sayfaları
+           ========================================================= */
+        .sheets {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 26px;
+        }
+
+        .sheet {
+            width: 210mm;
+            height: 297mm;
+            padding: 12mm;
+            background: #fff;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+            display: flex;
+            flex-direction: column;
+            color: #000;
+        }
+
+        .sheet-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 0.4mm solid #000;
+            padding-bottom: 2mm;
+            margin-bottom: 4mm;
+        }
+
+        .sheet-title {
+            font-size: 5mm;
+            font-weight: 800;
+            letter-spacing: 1.5mm;
+        }
+
+        .sheet-meta {
+            font-size: 3.2mm;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .puzzles {
+            flex: 1;
+            display: grid;
+            gap: 6mm;
+            justify-items: center;
+            align-items: center;
+            align-content: center;
+        }
+
+        /* Sayfa başına 2 bulmaca: tek sütun, 2 satır */
+        .sheet[data-per="2"] .puzzles {
+            grid-template-columns: 1fr;
+            grid-template-rows: repeat(2, 1fr);
+        }
+        .sheet[data-per="2"] .board { width: 110mm; font-size: 7mm; }
+
+        /* Sayfa başına 4 bulmaca: 2 x 2 */
+        .sheet[data-per="4"] .puzzles {
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 8mm;
+        }
+        .sheet[data-per="4"] .board { width: 86mm; font-size: 5.4mm; }
+
+        /* Sayfa başına 6 bulmaca: 2 x 3 */
+        .sheet[data-per="6"] .puzzles {
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 5mm;
+        }
+        .sheet[data-per="6"] .board { width: 70mm; font-size: 4.4mm; }
+
+        .puzzle {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5mm;
+        }
+
+        .puzzle-title {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-size: 3.4mm;
+            font-weight: 700;
+        }
+
+        .puzzle-title .tag {
+            font-size: 2.8mm;
+            font-weight: 600;
+            color: #444;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            aspect-ratio: 1 / 1;
+            border: 0.6mm solid #000;
+            background: #fff;
+        }
+
+        .cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-right: 0.2mm solid var(--line);
+            border-bottom: 0.2mm solid var(--line);
+            font-weight: 600;
+            line-height: 1;
+            color: #000;
+        }
+
+        .cell:nth-child(9n) { border-right: none; }
+        .cell:nth-child(n+73) { border-bottom: none; }
+        .cell.br { border-right: 0.6mm solid var(--line-strong); }
+        .cell.bb { border-bottom: 0.6mm solid var(--line-strong); }
+
+        .board strong { font-weight: 800; }
+
+        .sheet-foot {
+            margin-top: 3mm;
+            display: flex;
+            justify-content: space-between;
+            font-size: 2.8mm;
+            color: #555;
+            border-top: 0.2mm solid #bbb;
+            padding-top: 1.5mm;
+        }
+
+        /* =========================================================
+           Yazdırma
+           ========================================================= */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 0;
+            }
+
+            body {
+                background: #fff;
+                padding: 0;
+                margin: 0;
+            }
+
+            .screen-only { display: none !important; }
+
+            .sheets { display: block; }
+
+            .sheet {
+                width: 210mm;
+                height: 297mm;
+                margin: 0;
+                padding: 12mm;
+                box-shadow: none;
+                page-break-after: always;
+                break-after: page;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .sheet:last-child {
+                page-break-after: auto;
+                break-after: auto;
+            }
+        }
+
+        /* Küçük ekranlarda A4 önizlemesini kaydırılabilir yap */
+        @media screen and (max-width: 850px) {
+            .sheets { align-items: flex-start; overflow-x: auto; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="topbar screen-only">
+    <h1>SUDOKU YAZDIRMA</h1>
+    <p>A4 formatında, istediğin kadar sayfa bulmaca üret.</p>
+</div>
+
+<section class="controls screen-only">
+    <label class="field">
+        Zorluk
+        <select id="difficulty">
+            <option value="easy">Kolay</option>
+            <option value="medium" selected>Orta</option>
+            <option value="hard">Zor</option>
+            <option value="mixed">Karışık</option>
+        </select>
+    </label>
+
+    <label class="field">
+        Sayfa sayısı
+        <input id="pageCount" type="number" min="1" max="200" value="4">
+    </label>
+
+    <label class="field">
+        Sayfa başına bulmaca
+        <select id="perPage">
+            <option value="2">2</option>
+            <option value="4" selected>4</option>
+            <option value="6">6</option>
+        </select>
+    </label>
+
+    <label class="field checkbox-field">
+        <input id="includeSolutions" type="checkbox">
+        Çözüm sayfalarını da ekle
+    </label>
+
+    <button type="button" class="btn" id="generateBtn">Oluştur</button>
+    <button type="button" class="btn" id="printBtn">Yazdır</button>
+</section>
+
+<div class="status screen-only" id="status"></div>
+
+<main class="sheets" id="sheets"></main>
+
+<script src="sudoku.js"></script>
+
+</body>
+</html>
